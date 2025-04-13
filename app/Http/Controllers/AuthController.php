@@ -34,10 +34,13 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Send email verification notification
+        $user->sendEmailVerificationNotification();
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'User registered successfully',
+            'message' => 'User registered successfully. Please check your email to verify your account.',
             'user' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',
@@ -66,6 +69,14 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Invalid credentials',
             ], 401);
+        }
+
+        // Check if email is verified
+        if (!$user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Email not verified. Please check your email for verification link.',
+                'verification_required' => true
+            ], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
