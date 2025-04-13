@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\VerificationController;
+use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -14,6 +15,10 @@ Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify']
 Route::post('email/resend', [VerificationController::class, 'resend'])
     ->middleware(['auth:sanctum', 'throttle:6,1'])
     ->name('verification.send');
+
+// Password reset routes
+Route::post('password/email', [PasswordResetController::class, 'sendResetLinkEmail']);
+Route::post('password/reset', [PasswordResetController::class, 'reset']);
 
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
