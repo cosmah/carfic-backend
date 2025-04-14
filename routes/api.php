@@ -4,6 +4,13 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\AppointmentController;
+
+
+
+Route::post('/contact', [ContactController::class, 'store']);
+Route::post('/appointment', [AppointmentController::class, 'store']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
