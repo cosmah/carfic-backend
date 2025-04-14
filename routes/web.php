@@ -9,7 +9,7 @@ Route::get('/', function () {
 // This will handle direct visits to the verification URL from emails
 Route::get('verify-email/{id}/{hash}', function ($id, $hash) {
     return redirect('/api/email/verify/' . $id . '/' . $hash);
-})->name('verification.verify');
+})->name('web.verification.verify');
 
 // Fallback route
 Route::fallback(function () {
