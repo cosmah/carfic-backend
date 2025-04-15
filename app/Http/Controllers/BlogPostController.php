@@ -72,6 +72,7 @@ class BlogPostController extends Controller
                 'tags' => $post->tags->pluck('name')->toArray(),
                 'authorAvatar' => $post->author_avatar,
                 'readTime' => $post->read_time,
+                'isPublished' => $post->is_published,
                 'comments' => $post->comments->map(function ($comment) {
                     return [
                         'id' => $comment->id,
@@ -107,7 +108,7 @@ class BlogPostController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
-            'excerpt' => 'required|string',
+            'excerpt' => 'nullable|string',
             'content' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'author' => 'required|string|max:255',
@@ -116,6 +117,7 @@ class BlogPostController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'read_time' => 'nullable|integer',
+            'is_published' => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -180,7 +182,7 @@ class BlogPostController extends Controller
 
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|required|string|max:255',
-            'excerpt' => 'sometimes|required|string',
+            'excerpt' => 'sometimes|nullable|string',
             'content' => 'sometimes|required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'author' => 'sometimes|required|string|max:255',
@@ -189,6 +191,7 @@ class BlogPostController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'read_time' => 'nullable|integer',
+            'is_published' => 'sometimes|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -304,6 +307,7 @@ class BlogPostController extends Controller
             'tags' => $blogPost->tags->pluck('name')->toArray(),
             'authorAvatar' => $blogPost->author_avatar,
             'readTime' => $blogPost->read_time,
+            'isPublished' => $blogPost->is_published,
             'comments' => $blogPost->comments->map(function ($comment) {
                 return [
                     'id' => $comment->id,

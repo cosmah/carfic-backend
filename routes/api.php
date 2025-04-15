@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\FAQController;
-use App\Http\Controllers\Api\BlogPostController;
-use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\BlogPostController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\BlogInteractionController;
 
 // Contact and Appointment routes

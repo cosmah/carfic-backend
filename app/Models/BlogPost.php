@@ -23,6 +23,7 @@ class BlogPost extends Model
         'views',
         'read_time',
         'category',
+        'is_published',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class BlogPost extends Model
         'dislikes' => 'integer',
         'views' => 'integer',
         'read_time' => 'integer',
+        'is_published' => 'boolean',
     ];
 
     /**
