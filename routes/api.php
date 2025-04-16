@@ -10,6 +10,11 @@ use App\Http\Controllers\FAQController;
 use App\Http\Controllers\BlogPostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\BlogInteractionController;
+use App\Http\Controllers\GoogleAuthController;
+use Laravel\Socialite\Facades\Socialite;
+
+
+
 
 // Contact and Appointment routes
 Route::post('/contact', [ContactController::class, 'store']);
@@ -18,6 +23,10 @@ Route::post('/appointment', [AppointmentController::class, 'store']);
 // Auth routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Google OAuth routes (stateless)
+Route::post('/login/google', [GoogleAuthController::class, 'redirectToGoogle']);
+Route::get('/login/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
 // Email verification routes
 Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
