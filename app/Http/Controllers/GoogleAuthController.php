@@ -32,7 +32,9 @@ class GoogleAuthController extends Controller
     public function handleGoogleCallback(Request $request)
     {
         try {
-            $code = $request->query('code');
+            // Get code from POST request body
+            $code = $request->input('code');
+            //$code = $request->query('code');
             if (!$code) {
                 throw new \Exception('No authorization code provided');
             }

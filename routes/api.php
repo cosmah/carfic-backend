@@ -26,7 +26,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Google OAuth routes (stateless)
 Route::get('/login/google', [GoogleAuthController::class, 'redirectToGoogle']);
-Route::get('/login/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+Route::post('/login/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
 // Email verification routes
 Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
