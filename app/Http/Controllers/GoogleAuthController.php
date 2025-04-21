@@ -32,28 +32,25 @@ class GoogleAuthController extends Controller
     public function handleGoogleCallback(Request $request)
     {
         try {
-            // Get code from POST request body
             $code = $request->input('code');
-            //$code = $request->query('code');
             if (!$code) {
-                throw new \Exception('No authorization code provided');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No authorization code provided',
+                ], 400);
             }
 
             Log::info('Received authorization code:', ['code' => $code]);
 
-            // Check if the code has already been processed
             $cacheKey = 'google_oauth_code_' . md5($code);
             if (Cache::has($cacheKey)) {
                 Log::warning('Authorization code already used:', ['code' => $code]);
-                throw new \Exception('Authorization code already used');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authorization code already used',
+                ], 400);
             }
-
-            // Mark the code as used
-            Cache::put($cacheKey, true, now()->addMinutes(10)); // Store for 10 minutes
-
-            Log::info('Socialite redirect URI for token exchange:', [
-                'redirect_uri' => config('services.google.redirect'),
-            ]);
+            Cache::put($cacheKey, true, now()->addMinutes(10));
 
             $provider = Socialite::driver('google')->stateless();
             $accessTokenResponse = $provider->getAccessTokenResponse($code);
@@ -62,31 +59,41 @@ class GoogleAuthController extends Controller
 
             $googleUser = $provider->userFromToken($accessTokenResponse['access_token']);
 
-            $user = User::updateOrCreate([
-                'google_id' => $googleUser->id,
-            ], [
-                'name' => $googleUser->name,
-                'email' => $googleUser->email,
-                'password' => Hash::make(rand(10000, 99999)),
-            ]);
+            $user = User::updateOrCreate(
+                ['google_id' => $googleUser->id],
+                [
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'password' => Hash::make(rand(10000, 99999)),
+                ]
+            );
 
             $token = $user->createToken('google-token')->plainTextToken;
 
-            return response()->json([
+            Log::info('User authenticated successfully:', ['user_id' => $user->id]);
+
+            $response = [
                 'success' => true,
                 'message' => 'Google authentication successful',
                 'data' => [
                     'token' => $token,
-                    'user' => $user,
+                    'user' => $user->toArray(), // Ensure user is converted to array
                 ],
-            ]);
+            ];
+
+            // Log the exact response being sent
+            Log::info('Sending response to frontend:', $response);
+
+            return response()->json($response);
         } catch (\Exception $e) {
             Log::error('Google callback error: ' . $e->getMessage());
-            return response()->json([
+            $errorResponse = [
                 'success' => false,
                 'message' => 'Authentication failed',
                 'errors' => ['exception' => $e->getMessage()],
-            ], 500);
+            ];
+            Log::info('Sending error response to frontend:', $errorResponse);
+            return response()->json($errorResponse, 400);
         }
     }
 }

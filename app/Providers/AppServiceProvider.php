@@ -11,30 +11,20 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Laravel\Socialite\Facades\Socialite;
 use GuzzleHttp\Client;
 
-
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // Customize verification URLs
         VerifyEmail::createUrlUsing(function ($notifiable) {
             $params = [
                 'id' => $notifiable->getKey(),
                 'hash' => sha1($notifiable->getEmailForVerification()),
             ];
-
-            // API verification URL
             return url('/api/email/verify/' . $params['id'] . '/' . $params['hash']);
         });
 
@@ -42,14 +32,12 @@ class AppServiceProvider extends ServiceProvider
             return config('app.frontend_url') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
         });
 
-
-        // Extend Socialite to use a custom HTTP client with debugging enabled
+        // Extend Socialite with a custom HTTP client, but disable debug output
         Socialite::extend('google', function ($app) {
             $config = $app['config']['services.google'];
 
-            // Create a Guzzle client with debug enabled
             $guzzleClient = new Client([
-                'debug' => true, // Enable verbose logging
+                'debug' => false, // Disable debug output
             ]);
 
             return Socialite::buildProvider(
@@ -57,6 +45,5 @@ class AppServiceProvider extends ServiceProvider
                 $config
             )->setHttpClient($guzzleClient);
         });
-
     }
 }
