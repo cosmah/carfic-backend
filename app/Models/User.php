@@ -17,8 +17,12 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'google_id',
+        'email_verified_at', // Ensure this is fillable
     ];
 
+    protected $casts = [
+        'email_verified_at' => 'datetime', // Ensure proper casting
+    ];
     protected $hidden = [
         'password',
         'remember_token',

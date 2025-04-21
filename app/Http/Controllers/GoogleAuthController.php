@@ -65,6 +65,7 @@ class GoogleAuthController extends Controller
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
                     'password' => Hash::make(rand(10000, 99999)),
+                    'email_verified_at' => now(), // Mark email as verified
                 ]
             );
 
