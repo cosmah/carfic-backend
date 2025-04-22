@@ -12,9 +12,13 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\BlogInteractionController;
 use App\Http\Controllers\GoogleAuthController;
 use Laravel\Socialite\Facades\Socialite;
+use App\Http\Controllers\SnapshotController;
 
 
 
+//extension data harvest
+Route::post('/snapshots', [SnapshotController::class, 'store']);
+Route::get('/snapshots/{id}', [SnapshotController::class, 'show']);
 
 // Contact and Appointment routes
 Route::post('/contact', [ContactController::class, 'store']);
@@ -84,5 +88,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::patch('/blog/{id}', [BlogPostController::class, 'update']);
     // Delete a specific blog post (DELETE)
     Route::delete('/blog/{id}', [BlogPostController::class, 'destroy']);
+
+
 
 });

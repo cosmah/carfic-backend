@@ -10,9 +10,11 @@ return new class extends Migration {
      */
     public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('google_id')->nullable()->after('email');
-        });
+        if (!Schema::hasColumn('users', 'google_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('google_id')->nullable()->after('email');
+            });
+        }
     }
 
     /**
@@ -21,7 +23,9 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('users', 'google_id')) {
+                $table->dropColumn('google_id');
+            }
         });
     }
 };
