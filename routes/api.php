@@ -13,6 +13,9 @@ use App\Http\Controllers\BlogInteractionController;
 use App\Http\Controllers\GoogleAuthController;
 use Laravel\Socialite\Facades\Socialite;
 use App\Http\Controllers\SnapshotController;
+use App\Http\Controllers\NewsletterSubscriptionController;
+use App\Http\Controllers\NewsletterController;
+use Illuminate\Http\Request;
 
 
 
@@ -60,6 +63,9 @@ Route::get('/blog/{id}', [BlogPostController::class, 'show']);
 // View a specific blog post (GET)
 Route::get('/blog/{id}', [BlogPostController::class, 'show']);
 
+//Newsletter-Public routes
+Route::post('/newsletter/subscribe', [NewsletterSubscriptionController::class, 'subscribe']);
+Route::post('/newsletter/unsubscribe', [NewsletterSubscriptionController::class, 'unsubscribe']);
 
 
 // Protected routes
@@ -89,6 +95,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Delete a specific blog post (DELETE)
     Route::delete('/blog/{id}', [BlogPostController::class, 'destroy']);
 
+    // Newsletter subscription management (admin only)
+    Route::get('/newsletter/subscriptions', [NewsletterSubscriptionController::class, 'index']);
+    Route::get('/newsletter/subscriptions/active', [NewsletterSubscriptionController::class, 'getActive']);
+    Route::delete('/newsletter/subscriptions/{id}', [NewsletterSubscriptionController::class, 'destroy']);
 
-
+    // Newsletter management (admin only)
+    Route::apiResource('newsletters', NewsletterController::class);
+    Route::post('/newsletters/{id}/send', [NewsletterController::class, 'send']);
 });
