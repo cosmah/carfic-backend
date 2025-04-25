@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -16,11 +17,14 @@ class BlogPostController extends Controller
      */
     public function index(Request $request)
     {
+        Log::info('Fetching blog posts', ['request' => $request->all()]);
+
         $query = BlogPost::with(['comments', 'tags']);
 
         // Filter by search term
         if ($request->has('search')) {
             $searchTerm = $request->input('search');
+            Log::info('Applying search filter', ['searchTerm' => $searchTerm]);
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'like', "%{$searchTerm}%")
                   ->orWhere('excerpt', 'like', "%{$searchTerm}%")
@@ -30,12 +34,15 @@ class BlogPostController extends Controller
 
         // Filter by category
         if ($request->has('category') && $request->input('category') !== 'All') {
-            $query->where('category', $request->input('category'));
+            $category = $request->input('category');
+            Log::info('Applying category filter', ['category' => $category]);
+            $query->where('category', $category);
         }
 
         // Filter by tag
         if ($request->has('tag') && $request->input('tag') !== 'All') {
             $tag = $request->input('tag');
+            Log::info('Applying tag filter', ['tag' => $tag]);
             $query->whereHas('tags', function ($q) use ($tag) {
                 $q->where('name', $tag);
             });
@@ -43,6 +50,7 @@ class BlogPostController extends Controller
 
         // Sort posts
         $sortBy = $request->input('sort', 'newest');
+        Log::info('Sorting posts', ['sortBy' => $sortBy]);
         if ($sortBy === 'newest') {
             $query->orderBy('created_at', 'desc');
         } elseif ($sortBy === 'oldest') {
@@ -53,7 +61,10 @@ class BlogPostController extends Controller
 
         // Paginate results
         $perPage = $request->input('per_page', 9);
+        Log::info('Paginating results', ['perPage' => $perPage]);
         $blogPosts = $query->paginate($perPage);
+
+        Log::info('Blog posts retrieved successfully', ['total' => $blogPosts->total()]);
 
         // Transform the data to match the frontend expected format
         $formattedPosts = $blogPosts->map(function ($post) {
@@ -106,6 +117,8 @@ class BlogPostController extends Controller
      */
     public function store(Request $request)
     {
+        Log::info('Creating a new blog post', ['request' => $request->all()]);
+
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'excerpt' => 'nullable|string',
@@ -121,6 +134,7 @@ class BlogPostController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -129,15 +143,18 @@ class BlogPostController extends Controller
         }
 
         $data = $validator->validated();
+        Log::info('Validated data', ['data' => $data]);
 
         // Handle image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('blog_images', 'public');
             $data['image'] = Storage::url($path);
+            Log::info('Image uploaded', ['path' => $path]);
         }
 
         // Create blog post
         $blogPost = BlogPost::create($data);
+        Log::info('Blog post created', ['blogPost' => $blogPost]);
 
         // Handle tags
         if (isset($data['tags']) && is_array($data['tags'])) {
@@ -147,6 +164,7 @@ class BlogPostController extends Controller
                 $tagIds[] = $tag->id;
             }
             $blogPost->tags()->sync($tagIds);
+            Log::info('Tags synced', ['tags' => $data['tags']]);
         }
 
         return response()->json([
