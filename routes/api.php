@@ -16,7 +16,7 @@ use App\Http\Controllers\SnapshotController;
 use App\Http\Controllers\NewsletterSubscriptionController;
 use App\Http\Controllers\NewsletterController;
 use Illuminate\Http\Request;
-
+use App\Http\Controllers\UserController;
 
 
 //extension data harvest
@@ -103,4 +103,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Newsletter management (admin only)
     Route::apiResource('newsletters', NewsletterController::class);
     Route::post('/newsletters/{id}/send', [NewsletterController::class, 'send']);
+
+    // User management (admin only)
+    Route::get('/users', [UserController::class, 'index']); // Fetch all users
+    Route::get('/users/{id}', [UserController::class, 'show']); // Fetch a single user by ID
+
+
+    Route::get('/newsletter-emails', [UserController::class, 'fetchNewsletterEmails']); // Fetch active newsletter emails
+
 });
