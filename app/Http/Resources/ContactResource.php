@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ContactResource extends JsonResource
 {
-    public function toArray(Request $request): array
+        public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
@@ -16,6 +16,7 @@ class ContactResource extends JsonResource
             'phone' => $this->phone,
             'subject' => $this->subject,
             'message' => $this->message,
+            'status' => $this->status, // Include the status field
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),

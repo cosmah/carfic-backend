@@ -4,7 +4,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\BlogPostController;
@@ -17,6 +16,7 @@ use App\Http\Controllers\NewsletterSubscriptionController;
 use App\Http\Controllers\NewsletterController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ContactController;
 
 
 //extension data harvest
@@ -111,4 +111,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::get('/newsletter-emails', [UserController::class, 'fetchNewsletterEmails']); // Fetch active newsletter emails
 
+    //contact management (admin only)
+    Route::get('/inbox/contacts', [ContactController::class, 'index']); // Fetch all contacts
+    Route::delete('/inbox/contacts/{id}', [ContactController::class, 'destroy']); // Delete a contact
+    Route::get('/inbox/contacts/{id}', [ContactController::class, 'show']); // Fetch a single contact
 });
