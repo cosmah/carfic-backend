@@ -54,6 +54,11 @@ class ContactController extends Controller
         // Fetch a single contact by ID
         $contact = Contact::with('attachments')->findOrFail($id);
 
+        // Update the status to 1 (read)
+        if ($contact->status === 0) {
+            $contact->update(['status' => 1]);
+        }
+
         return response()->json([
             'success' => true,
             'data' => new ContactResource($contact)
