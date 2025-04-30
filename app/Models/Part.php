@@ -22,7 +22,8 @@ class Part extends Model
         'specifications',
         'images',
         'compatibility',
-        'image'
+        'image',
+        'status', // Add status to fillable attributes
     ];
 
     protected $casts = [
