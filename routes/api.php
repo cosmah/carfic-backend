@@ -17,6 +17,12 @@ use App\Http\Controllers\NewsletterController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\PartController;
+
+
+//spare purts routes
+Route::get('/parts', [PartController::class, 'index']);
+Route::get('/parts/{id}', [PartController::class, 'show']);
 
 
 //extension data harvest
@@ -115,4 +121,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/inbox/contacts', [ContactController::class, 'index']); // Fetch all contacts
     Route::delete('/inbox/contacts/{id}', [ContactController::class, 'destroy']); // Delete a contact
     Route::get('/inbox/contacts/{id}', [ContactController::class, 'show']); // Fetch a single contact
+
+    //spare parts management (admin only)
+    Route::post('/parts', [PartController::class, 'store']);
+    Route::put('/parts/{id}', [PartController::class, 'update']);
+    Route::delete('/parts/{id}', [PartController::class, 'destroy']);
 });
