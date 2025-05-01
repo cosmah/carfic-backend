@@ -23,7 +23,7 @@ class Part extends Model
         'images',
         'compatibility',
         'image',
-        'status', // Add status to fillable attributes
+        'status',
     ];
 
     protected $casts = [
@@ -31,5 +31,10 @@ class Part extends Model
         'specifications' => 'array',
         'images' => 'array',
         'compatibility' => 'array',
+        'price' => 'float',
+        'original_price' => 'float',
+        'stock' => 'integer',
+        'rating' => 'float',
+        'review_count' => 'integer',
     ];
 }
