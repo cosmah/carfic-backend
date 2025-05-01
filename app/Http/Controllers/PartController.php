@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Part;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class PartController extends Controller
 {
@@ -52,6 +53,18 @@ class PartController extends Controller
 
         $part = Part::create($validated);
         return response()->json($part, 201);
+    }
+
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $path = $request->file('image')->store('public/images');
+        $url = Storage::url($path);
+
+        return response()->json(['url' => $url], 200);
     }
 
     public function update(Request $request, $id): JsonResponse

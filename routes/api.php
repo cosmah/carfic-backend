@@ -126,4 +126,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/parts', [PartController::class, 'store']);
     Route::put('/parts/{id}', [PartController::class, 'update']);
     Route::delete('/parts/{id}', [PartController::class, 'destroy']);
+    Route::post('/upload-image', [PartController::class, 'uploadImage']);
+
 });
