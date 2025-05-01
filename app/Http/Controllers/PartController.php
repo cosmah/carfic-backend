@@ -57,14 +57,29 @@ class PartController extends Controller
 
     public function uploadImage(Request $request): JsonResponse
     {
+        // Validate that at least one image is provided
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'required|array|min:1',
+            'image.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $path = $request->file('image')->store('public/images');
-        $url = Storage::url($path);
+        try {
+            $files = $request->file('image');
+            if (empty($files)) {
+                return response()->json(['error' => 'No images provided'], 422);
+            }
 
-        return response()->json(['url' => $url], 200);
+            $urls = [];
+            foreach ($files as $image) {
+                $path = $image->store('public/spares');
+                $urls[] = Storage::url($path);
+            }
+
+            return response()->json(['urls' => $urls], 200);
+        } catch (\Exception $e) {
+            \Log::error('Image upload failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to upload images'], 500);
+        }
     }
 
     public function update(Request $request, $id): JsonResponse
