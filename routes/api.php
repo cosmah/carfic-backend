@@ -19,13 +19,11 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PartController;
 
-
-//spare purts routes
+// Spare parts routes
 Route::get('/parts', [PartController::class, 'index']);
 Route::get('/parts/{id}', [PartController::class, 'show']);
 
-
-//extension data harvest
+// Extension data harvest
 Route::post('/snapshots', [SnapshotController::class, 'store']);
 Route::get('/snapshots/{id}', [SnapshotController::class, 'show']);
 
@@ -58,7 +56,6 @@ Route::get('/faqs', [FAQController::class, 'index']);
 Route::get('/faqs/{id}', [FAQController::class, 'show']);
 Route::get('/faqs/category/{category}', [FAQController::class, 'getByCategory']);
 
-
 // Blog Post Routes
 Route::get('/blog/categories', [BlogPostController::class, 'getCategories']);
 Route::get('/blog/tags', [BlogPostController::class, 'getTags']);
@@ -69,10 +66,9 @@ Route::get('/blog/{id}', [BlogPostController::class, 'show']);
 // View a specific blog post (GET)
 Route::get('/blog/{id}', [BlogPostController::class, 'show']);
 
-//Newsletter-Public routes
+// Newsletter - Public routes
 Route::post('/newsletter/subscribe', [NewsletterSubscriptionController::class, 'subscribe']);
 Route::post('/newsletter/unsubscribe', [NewsletterSubscriptionController::class, 'unsubscribe']);
-
 
 // Protected routes
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
@@ -82,8 +78,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/faqs/store', [FAQController::class, 'store']);
     Route::put('/faqs/update/{id}', [FAQController::class, 'update']);
     Route::delete('/faqs/delete/{id}', [FAQController::class, 'destroy']);
-
-
 
     // Blog Post Interactions
     Route::post('/blog/{id}/like', [BlogInteractionController::class, 'like']);
@@ -114,18 +108,16 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/users', [UserController::class, 'index']); // Fetch all users
     Route::get('/users/{id}', [UserController::class, 'show']); // Fetch a single user by ID
 
-
     Route::get('/newsletter-emails', [UserController::class, 'fetchNewsletterEmails']); // Fetch active newsletter emails
 
-    //contact management (admin only)
+    // Contact management (admin only)
     Route::get('/inbox/contacts', [ContactController::class, 'index']); // Fetch all contacts
     Route::delete('/inbox/contacts/{id}', [ContactController::class, 'destroy']); // Delete a contact
     Route::get('/inbox/contacts/{id}', [ContactController::class, 'show']); // Fetch a single contact
 
-    //spare parts management (admin only)
+    // Spare parts management (admin only)
     Route::post('/parts', [PartController::class, 'store']);
     Route::put('/parts/{id}', [PartController::class, 'update']);
     Route::delete('/parts/{id}', [PartController::class, 'destroy']);
-    Route::post('/upload-image', [PartController::class, 'uploadImage']);
-
+    Route::post('/parts/upload-image', [PartController::class, 'uploadImage']);
 });

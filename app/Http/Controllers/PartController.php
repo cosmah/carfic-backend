@@ -1,40 +1,75 @@
 <?php
-// app/Http/Controllers/PartController.php
 namespace App\Http\Controllers;
 
 use App\Models\Part;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class PartController extends Controller
 {
+    private function formatImageUrls($part)
+    {
+        if ($part->image) {
+            $part->image = str_starts_with($part->image, 'http')
+                ? $part->image
+                : Storage::url($part->image);
+        }
+
+        if ($part->images && is_array($part->images)) {
+            $part->images = array_map(function($image) {
+                if (isset($image['src'])) {
+                    $image['src'] = str_starts_with($image['src'], 'http')
+                        ? $image['src']
+                        : Storage::url($image['src']);
+                }
+                return $image;
+            }, $part->images);
+        }
+
+        return $part;
+    }
+
     public function index(Request $request): JsonResponse
     {
+        Log::info('Index method called', ['query' => $request->query()]);
+
         $query = Part::query();
 
-        // Search by name
         if ($search = $request->query('search')) {
+            Log::info('Search filter applied', ['search' => $search]);
             $query->where('name', 'like', "%{$search}%");
         }
 
-        // Filter by category
         if ($category = $request->query('category')) {
+            Log::info('Category filter applied', ['category' => $category]);
             $query->where('category', $category);
         }
 
-        $parts = $query->get();
+        $parts = $query->get()->map(function($part) {
+            return $this->formatImageUrls($part);
+        });
+
+        Log::info('Parts retrieved', ['count' => $parts->count()]);
         return response()->json($parts);
     }
 
     public function show($id): JsonResponse
     {
+        Log::info('Show method called', ['id' => $id]);
+
         $part = Part::findOrFail($id);
+        $part = $this->formatImageUrls($part);
+
+        Log::info('Part retrieved', ['part_id' => $part->id]);
         return response()->json($part);
     }
 
     public function store(Request $request): JsonResponse
     {
+        Log::info('Store method called', ['request' => $request->all()]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:255',
@@ -46,45 +81,66 @@ class PartController extends Controller
             'description' => 'required|string',
             'features' => 'nullable|array',
             'specifications' => 'nullable|array',
+            'specifications.*.name' => 'required_with:specifications|string',
+            'specifications.*.value' => 'required_with:specifications|string',
             'images' => 'nullable|array',
+            'images.*.src' => 'required_with:images|string',
+            'images.*.alt' => 'nullable|string',
             'compatibility' => 'nullable|array',
+            'compatibility.*.make' => 'required_with:compatibility|string',
+            'compatibility.*.models' => 'required_with:compatibility|array',
             'image' => 'nullable|string',
+            'status' => 'required|in:draft,published',
         ]);
 
+        Log::info('Validation passed', ['validated' => $validated]);
+
         $part = Part::create($validated);
+        $part = $this->formatImageUrls($part);
+
+        Log::info('Part created', ['part_id' => $part->id]);
         return response()->json($part, 201);
     }
 
     public function uploadImage(Request $request): JsonResponse
     {
-        // Validate that at least one image is provided
+        Log::info('UploadImage method called', ['request' => $request->all()]);
+
         $request->validate([
-            'image' => 'required|array|min:1',
-            'image.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'images' => 'required|array|min:1',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         try {
-            $files = $request->file('image');
+            $files = $request->file('images');
+            Log::info('Files received', ['files_count' => count($files)]);
+
             if (empty($files)) {
+                Log::warning('No images provided');
                 return response()->json(['error' => 'No images provided'], 422);
             }
 
             $urls = [];
-            foreach ($files as $image) {
-                $path = $image->store('public/spares');
-                $urls[] = Storage::url($path);
+            foreach ($files as $index => $image) {
+                $path = $image->store('spares', 'public');
+                $url = Storage::url($path);
+                $urls[] = ['index' => $index, 'url' => $url, 'path' => $path];
+                Log::info('Image stored', ['index' => $index, 'path' => $path, 'url' => $url]);
             }
 
             return response()->json(['urls' => $urls], 200);
         } catch (\Exception $e) {
-            \Log::error('Image upload failed: ' . $e->getMessage());
+            Log::error('Image upload failed', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to upload images'], 500);
         }
     }
 
     public function update(Request $request, $id): JsonResponse
     {
+        Log::info('Update method called', ['id' => $id, 'request' => $request->all()]);
+
         $part = Part::findOrFail($id);
+        Log::info('Part found', ['part_id' => $part->id]);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -97,19 +153,37 @@ class PartController extends Controller
             'description' => 'sometimes|string',
             'features' => 'nullable|array',
             'specifications' => 'nullable|array',
+            'specifications.*.name' => 'required_with:specifications|string',
+            'specifications.*.value' => 'required_with:specifications|string',
             'images' => 'nullable|array',
+            'images.*.src' => 'required_with:images|string',
+            'images.*.alt' => 'nullable|string',
             'compatibility' => 'nullable|array',
+            'compatibility.*.make' => 'required_with:compatibility|string',
+            'compatibility.*.models' => 'required_with:compatibility|array',
             'image' => 'nullable|string',
+            'status' => 'sometimes|in:draft,published',
         ]);
 
+        Log::info('Validation passed', ['validated' => $validated]);
+
         $part->update($validated);
+        $part = $this->formatImageUrls($part);
+
+        Log::info('Part updated', ['part_id' => $part->id]);
         return response()->json($part);
     }
 
     public function destroy($id): JsonResponse
     {
+        Log::info('Destroy method called', ['id' => $id]);
+
         $part = Part::findOrFail($id);
+        Log::info('Part found', ['part_id' => $part->id]);
+
         $part->delete();
+        Log::info('Part deleted', ['id' => $id]);
+
         return response()->json(null, 204);
     }
 }
