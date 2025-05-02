@@ -106,18 +106,17 @@ class PartController extends Controller
     {
         Log::info('UploadImage method called', ['request' => $request->all()]);
 
-        $request->validate([
-            'images' => 'required|array|min:1',
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
         try {
-            $files = $request->file('images');
-            Log::info('Files received', ['files_count' => count($files)]);
+            $validated = $request->validate([
+                'images' => 'required|array|min:1',
+                'images.*' => 'required|image|max:2048', // Removed 'mimes' rule
+            ]);
 
-            if (empty($files)) {
-                Log::warning('No images provided');
-                return response()->json(['error' => 'No images provided'], 422);
+            Log::info('Validation passed', ['validated' => $validated]);
+
+            $files = $request->file('images');
+            foreach ($files as $index => $image) {
+                Log::info('File MIME type', ['index' => $index, 'mime_type' => $image->getMimeType()]);
             }
 
             $urls = [];
@@ -129,6 +128,9 @@ class PartController extends Controller
             }
 
             return response()->json(['urls' => $urls], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed', ['errors' => $e->errors()]);
+            return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             Log::error('Image upload failed', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to upload images'], 500);
