@@ -34,4 +34,24 @@ class AppointmentController extends Controller
             'data' => new AppointmentResource($appointment)
         ], 201);
     }
+
+    public function index(): JsonResponse
+    {
+        $appointments = Appointment::with('attachments')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => AppointmentResource::collection($appointments),
+        ]);
+    }
+
+    public function show($id): JsonResponse
+    {
+        $appointment = Appointment::with('attachments')->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => new AppointmentResource($appointment),
+        ]);
+    }
 }

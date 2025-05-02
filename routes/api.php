@@ -120,4 +120,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::put('/parts/{id}', [PartController::class, 'update']);
     Route::delete('/parts/{id}', [PartController::class, 'destroy']);
     Route::post('/parts/upload-image', [PartController::class, 'uploadImage']);
+
+    // Appointment management (admin only)
+
+    Route::get('/appointments', [AppointmentController::class, 'index']);
+    Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
 });
