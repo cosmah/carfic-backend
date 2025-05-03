@@ -21,10 +21,15 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PartController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\ServiceController;
 
 // Spare parts routes
 Route::get('/parts', [PartController::class, 'index']);
 Route::get('/parts/{id}', [PartController::class, 'show']);
+
+Route::prefix('services')->group(function () {
+    Route::get('/', [ServiceController::class, 'index']);
+});
 
 // Extension data harvest
 Route::post('/snapshots', [SnapshotController::class, 'store']);
@@ -134,4 +139,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Appointment management (admin only)
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
+
+    //service management (admin only)
+    Route::prefix('services')->group(function () {
+        Route::post('/', [ServiceController::class, 'store']);
+        Route::get('/{id}', [ServiceController::class, 'show']);
+        Route::post('/{id}', [ServiceController::class, 'update']);
+        Route::delete('/{id}', [ServiceController::class, 'destroy']);
+    });
 });
