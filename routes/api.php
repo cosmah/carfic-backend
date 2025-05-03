@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HarvestorController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
@@ -121,8 +122,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::delete('/parts/{id}', [PartController::class, 'destroy']);
     Route::post('/parts/upload-image', [PartController::class, 'uploadImage']);
 
-    // Appointment management (admin only)
+    Route::post('/harvests', [HarvestorController::class, 'store']);
 
+
+    // Appointment management (admin only)
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
 });
