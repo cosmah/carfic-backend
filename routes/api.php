@@ -144,7 +144,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::prefix('services')->group(function () {
         Route::post('/', [ServiceController::class, 'store']);
         Route::get('/{id}', [ServiceController::class, 'show']);
-        Route::post('/{id}', [ServiceController::class, 'update']);
+        Route::put('/{id}', [ServiceController::class, 'update']);
         Route::delete('/{id}', [ServiceController::class, 'destroy']);
     });
 });

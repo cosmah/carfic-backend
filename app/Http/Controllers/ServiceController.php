@@ -18,15 +18,16 @@ class ServiceController extends Controller
     // Store a new service
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'services_list' => 'nullable|array',
+            'services_list.*' => 'string|max:255',
         ]);
 
         $service = new Service();
-        $service->title = $request->title;
-        $service->description = $request->description;
+        $service->fill($validated);
 
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('services', 'public');
@@ -48,22 +49,24 @@ class ServiceController extends Controller
     // Update a service
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'services_list' => 'nullable|array',
+            'services_list.*' => 'string|max:255',
         ]);
 
         $service = Service::findOrFail($id);
-        $service->title = $request->title;
-        $service->description = $request->description;
+        $service->fill($validated);
 
         if ($request->hasFile('image')) {
-            // Delete old image if exists
             if ($service->image_path) {
                 Storage::disk('public')->delete($service->image_path);
             }
             $imagePath = $request->file('image')->store('services', 'public');
+
+
             $service->image_path = $imagePath;
         }
 

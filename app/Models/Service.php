@@ -9,5 +9,10 @@ class Service extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'description', 'image_path'];
+    protected $fillable = ['title', 'description', 'image_path', 'services_list'];
+
+
+    protected $casts = [
+        'services_list' => 'array', // Automatically cast JSON to array and vice versa
+    ];
 }
