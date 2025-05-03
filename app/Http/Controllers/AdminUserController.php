@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\JsonResponse;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Auth;
 class AdminUserController extends Controller
 {
     /**
-     * Create a new user with specified user type.
+     * Create a new user with specified user type and send verification email.
      *
      * @throws \Illuminate\Validation\ValidationException
      */
@@ -32,6 +33,9 @@ class AdminUserController extends Controller
             'password' => Hash::make($request->string('password')),
             'user_type' => $request->user_type ?? 'client', // Default to client if not provided
         ]);
+
+        // Trigger verification email
+        event(new Registered($user));
 
         return response()->json(['message' => 'User created successfully', 'user' => $user], 201);
     }
