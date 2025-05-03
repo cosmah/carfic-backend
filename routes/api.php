@@ -19,6 +19,8 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PartController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\AdminUserController;
 
 // Spare parts routes
 Route::get('/parts', [PartController::class, 'index']);
@@ -124,6 +126,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::post('/harvests', [HarvestorController::class, 'store']);
 
+
+    // User management (admin only)
+    Route::post('/admin/users', [AdminUserController::class, 'store']);
+    Route::delete('/admin/users/{id}', [AdminUserController::class, 'destroy']);
 
     // Appointment management (admin only)
     Route::get('/appointments', [AppointmentController::class, 'index']);
