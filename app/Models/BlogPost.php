@@ -16,6 +16,7 @@ class BlogPost extends Model
         'excerpt',
         'content',
         'image',
+        'cover_image', // Added field
         'author',
         'author_avatar',
         'likes',

@@ -8,6 +8,7 @@ use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class BlogPostController extends Controller
 {
@@ -23,8 +24,8 @@ class BlogPostController extends Controller
             $searchTerm = $request->input('search');
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'like', "%{$searchTerm}%")
-                  ->orWhere('excerpt', 'like', "%{$searchTerm}%")
-                  ->orWhere('content', 'like', "%{$searchTerm}%");
+                    ->orWhere('excerpt', 'like', "%{$searchTerm}%")
+                    ->orWhere('content', 'like', "%{$searchTerm}%");
             });
         }
 
@@ -64,6 +65,7 @@ class BlogPostController extends Controller
                 'excerpt' => $post->excerpt,
                 'content' => $post->content,
                 'image' => $post->image,
+                'cover_image' => $post->cover_image ? Storage::url($post->cover_image) : null,
                 'author' => $post->author,
                 'date' => $post->created_at->toDateString(),
                 'likes' => $post->likes,
@@ -111,7 +113,8 @@ class BlogPostController extends Controller
             'title' => 'required|string|max:255',
             'excerpt' => 'nullable|string',
             'content' => 'required|string',
-            'image' => 'nullable|file|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'author' => 'required|string|max:255',
             'author_avatar' => 'nullable|string',
             'category' => 'nullable|string|max:100',
@@ -137,7 +140,16 @@ class BlogPostController extends Controller
             $extension = $request->file('image')->getClientOriginalExtension();
             $filename = "{$randomNumber}_blog.{$extension}";
             $path = $request->file('image')->storeAs('blog_images', $filename, 'public');
-            $data['image'] = Storage::url($path);
+            $data['image'] = $path;
+        }
+
+        // Handle cover image upload
+        if ($request->hasFile('cover_image')) {
+            $randomNumber = random_int(100000000000, 999999999999);
+            $extension = $request->file('cover_image')->getClientOriginalExtension();
+            $filename = "{$randomNumber}_cover.{$extension}";
+            $path = $request->file('cover_image')->storeAs('blog_cover', $filename, 'public');
+            $data['cover_image'] = $path;
         }
 
         $blogPost = BlogPost::create($data);
@@ -182,58 +194,30 @@ class BlogPostController extends Controller
     {
         $blogPost = BlogPost::findOrFail($id);
 
-        // Parse raw multipart/form-data
-        $input = [];
-        $rawContent = $request->getContent();
-        $boundary = $request->header('content-type');
-        $boundary = explode('boundary=', $boundary)[1] ?? null;
+        $input = [
+            'title' => $request->input('title'),
+            'excerpt' => $request->input('excerpt'),
+            'content' => $request->input('content'),
+            'category' => $request->input('category'),
+            'author' => $request->input('author'),
+            'is_published' => $request->input('is_published') === 'true' || $request->input('is_published') === true,
+        ];
 
-        if ($boundary) {
-            $parts = explode('--' . $boundary, $rawContent);
-            foreach ($parts as $part) {
-                if (trim($part) === '' || $part === '--') {
-                    continue;
-                }
-                preg_match('/Content-Disposition: form-data; name="([^"]+)"(?:; filename="[^"]+")?\r\n\r\n([\s\S]*?)\r\n/', $part, $matches);
-                if (isset($matches[1], $matches[2])) {
-                    $name = $matches[1];
-                    $value = trim($matches[2]);
-                    if ($name === 'tags[]' || preg_match('/tags\[\d+\]/', $name)) {
-                        $input['tags'][] = $value;
-                    } elseif ($name === 'is_published') {
-                        $input[$name] = $value === 'true';
-                    } else {
-                        $input[$name] = $value;
-                    }
-                }
+        // Handle tags
+        $tags = [];
+        $i = 0;
+        while ($request->has("tags[{$i}]")) {
+            $tags[] = $request->input("tags[{$i}]");
+            $i++;
+        }
+        if (empty($tags) && $request->has('tags')) {
+            $tags = $request->input('tags');
+            if (!is_array($tags)) {
+                $tags = [$tags];
             }
         }
-
-        // Fallback to request->input() if raw parsing fails
-        if (empty($input)) {
-            $input = [
-                'title' => $request->input('title'),
-                'excerpt' => $request->input('excerpt'),
-                'content' => $request->input('content'),
-                'category' => $request->input('category'),
-                'author' => $request->input('author'),
-                'is_published' => $request->input('is_published') === 'true' || $request->input('is_published') === true,
-            ];
-            $tags = [];
-            $i = 0;
-            while ($request->has("tags[{$i}]")) {
-                $tags[] = $request->input("tags[{$i}]");
-                $i++;
-            }
-            if (empty($tags) && $request->has('tags')) {
-                $tags = $request->input('tags');
-                if (!is_array($tags)) {
-                    $tags = [$tags];
-                }
-            }
-            if (!empty($tags)) {
-                $input['tags'] = $tags;
-            }
+        if (!empty($tags)) {
+            $input['tags'] = $tags;
         }
 
         // Remove null values
@@ -245,7 +229,8 @@ class BlogPostController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'excerpt' => 'sometimes|nullable|string',
             'content' => 'sometimes|required|string',
-            'image' => 'nullable|file|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'author' => 'sometimes|required|string|max:255',
             'author_avatar' => 'nullable|string',
             'category' => 'nullable|string|max:100',
@@ -275,17 +260,32 @@ class BlogPostController extends Controller
         // Handle image upload
         if ($request->hasFile('image')) {
             if ($blogPost->image) {
-                $oldImagePath = str_replace('/storage/', '', $blogPost->image);
+                $oldImagePath = $blogPost->image;
                 if (Storage::disk('public')->exists($oldImagePath)) {
                     Storage::disk('public')->delete($oldImagePath);
                 }
             }
-
             $randomNumber = random_int(100000000000, 999999999999);
             $extension = $request->file('image')->getClientOriginalExtension();
             $filename = "{$randomNumber}_blog.{$extension}";
             $path = $request->file('image')->storeAs('blog_images', $filename, 'public');
-            $data['image'] = Storage::url($path);
+            $data['image'] = $path;
+        }
+
+        // Handle cover image upload
+        if ($request->hasFile('cover_image')) {
+            Log::info('Cover image file detected: ', ['file' => $request->file('cover_image')]);
+            if ($blogPost->cover_image) {
+                $oldCoverPath = $blogPost->cover_image;
+                if (Storage::disk('public')->exists($oldCoverPath)) {
+                    Storage::disk('public')->delete($oldCoverPath);
+                }
+            }
+            $randomNumber = random_int(100000000000, 999999999999);
+            $extension = $request->file('cover_image')->getClientOriginalExtension();
+            $filename = "{$randomNumber}_cover.{$extension}";
+            $path = $request->file('cover_image')->storeAs('blog_cover', $filename, 'public');
+            $data['cover_image'] = $path;
         }
 
         // Update only if data is present
@@ -315,10 +315,19 @@ class BlogPostController extends Controller
     {
         $blogPost = BlogPost::findOrFail($id);
 
+        // Delete the main image if exists
         if ($blogPost->image) {
-            $imagePath = str_replace('/storage/', '', $blogPost->image);
+            $imagePath = $blogPost->image;
             if (Storage::disk('public')->exists($imagePath)) {
                 Storage::disk('public')->delete($imagePath);
+            }
+        }
+
+        // Delete the cover image if exists
+        if ($blogPost->cover_image) {
+            $coverPath = $blogPost->cover_image;
+            if (Storage::disk('public')->exists($coverPath)) {
+                Storage::disk('public')->delete($coverPath);
             }
         }
 
@@ -366,7 +375,8 @@ class BlogPostController extends Controller
             'title' => $blogPost->title,
             'excerpt' => $blogPost->excerpt,
             'content' => $blogPost->content,
-            'image' => $blogPost->image,
+            'image' => $blogPost->image ? Storage::url($blogPost->image) : null,
+            'cover_image' => $blogPost->cover_image ? Storage::url($blogPost->cover_image) : null,
             'author' => $blogPost->author,
             'date' => $blogPost->created_at->toDateString(),
             'likes' => $blogPost->likes,
