@@ -107,6 +107,14 @@ class BlogPostController extends Controller
      */
     public function store(Request $request)
     {
+        \Log::info('Store request received', [
+            'request' => $request->all(),
+            'raw' => $request->getContent(),
+            'headers' => $request->headers->all(),
+            'input' => $request->input(),
+            'files' => $request->file()
+        ]);
+
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'excerpt' => 'nullable|string',
@@ -122,6 +130,7 @@ class BlogPostController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -130,6 +139,7 @@ class BlogPostController extends Controller
         }
 
         $data = $validator->validated();
+        \Log::info('Validated data', ['data' => $data]);
 
         // Handle image upload
         if ($request->hasFile('image')) {
@@ -170,7 +180,7 @@ class BlogPostController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $this->formatBlogPost($blogPost), // Pass the correct instance
+            'data' => $this->formatBlogPost($blogPost),
             'message' => 'Blog post retrieved successfully',
         ]);
     }
@@ -180,9 +190,80 @@ class BlogPostController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $blogPost = BlogPost::findOrFail($id);
+        \Log::info('Update request received', [
+            'id' => $id,
+            'request' => $request->all(),
+            'raw' => $request->getContent(),
+            'headers' => $request->headers->all(),
+            'input' => $request->input(),
+            'files' => $request->file()
+        ]);
 
-        $validator = Validator::make($request->all(), [
+        $blogPost = BlogPost::findOrFail($id);
+        \Log::info('Blog post found', ['blogPost' => $blogPost->toArray()]);
+
+        // Parse raw multipart/form-data
+        $input = [];
+        $rawContent = $request->getContent();
+        $boundary = $request->header('content-type');
+        $boundary = explode('boundary=', $boundary)[1] ?? null;
+
+        if ($boundary) {
+            $parts = explode('--' . $boundary, $rawContent);
+            foreach ($parts as $part) {
+                if (trim($part) === '' || $part === '--') {
+                    continue;
+                }
+                preg_match('/Content-Disposition: form-data; name="([^"]+)"(?:; filename="[^"]+")?\r\n\r\n([\s\S]*?)\r\n/', $part, $matches);
+                if (isset($matches[1], $matches[2])) {
+                    $name = $matches[1];
+                    $value = trim($matches[2]);
+                    if ($name === 'tags[]' || preg_match('/tags\[\d+\]/', $name)) {
+                        $input['tags'][] = $value;
+                    } elseif ($name === 'is_published') {
+                        $input[$name] = $value === 'true';
+                    } else {
+                        $input[$name] = $value;
+                    }
+                }
+            }
+        }
+
+        // Fallback to request->input() if raw parsing fails
+        if (empty($input)) {
+            $input = [
+                'title' => $request->input('title'),
+                'excerpt' => $request->input('excerpt'),
+                'content' => $request->input('content'),
+                'category' => $request->input('category'),
+                'author' => $request->input('author'),
+                'is_published' => $request->input('is_published') === 'true' || $request->input('is_published') === true,
+            ];
+            $tags = [];
+            $i = 0;
+            while ($request->has("tags[{$i}]")) {
+                $tags[] = $request->input("tags[{$i}]");
+                $i++;
+            }
+            if (empty($tags) && $request->has('tags')) {
+                $tags = $request->input('tags');
+                if (!is_array($tags)) {
+                    $tags = [$tags];
+                }
+            }
+            if (!empty($tags)) {
+                $input['tags'] = $tags;
+            }
+        }
+
+        // Remove null values
+        $input = array_filter($input, function ($value) {
+            return !is_null($value);
+        });
+
+        \Log::info('Parsed input', ['input' => $input]);
+
+        $validator = Validator::make($input, [
             'title' => 'sometimes|required|string|max:255',
             'excerpt' => 'sometimes|nullable|string',
             'content' => 'sometimes|required|string',
@@ -197,6 +278,7 @@ class BlogPostController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -205,12 +287,24 @@ class BlogPostController extends Controller
         }
 
         $data = $validator->validated();
+        \Log::info('Validated data', ['data' => $data]);
 
+        if (empty($data)) {
+            \Log::warning('No validated data to update');
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid data provided for update',
+            ], 400);
+        }
+
+        // Handle image upload
         if ($request->hasFile('image')) {
+            \Log::info('Image upload detected');
             if ($blogPost->image) {
                 $oldImagePath = str_replace('/storage/', '', $blogPost->image);
                 if (Storage::disk('public')->exists($oldImagePath)) {
                     Storage::disk('public')->delete($oldImagePath);
+                    \Log::info('Old image deleted', ['path' => $oldImagePath]);
                 }
             }
 
@@ -219,10 +313,14 @@ class BlogPostController extends Controller
             $filename = "{$randomNumber}_blog.{$extension}";
             $path = $request->file('image')->storeAs('blog_images', $filename, 'public');
             $data['image'] = Storage::url($path);
+            \Log::info('New image uploaded', ['path' => $path]);
         }
 
+        // Update only if data is present
         $blogPost->update($data);
+        \Log::info('Blog post updated', ['updatedData' => $data]);
 
+        // Handle tags
         if (isset($data['tags']) && is_array($data['tags'])) {
             $tagIds = [];
             foreach ($data['tags'] as $tagName) {
@@ -230,6 +328,7 @@ class BlogPostController extends Controller
                 $tagIds[] = $tag->id;
             }
             $blogPost->tags()->sync($tagIds);
+            \Log::info('Tags synced', ['tags' => $data['tags']]);
         }
 
         return response()->json([

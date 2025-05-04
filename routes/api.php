@@ -71,15 +71,13 @@ Route::post('/blog/{id}/view', [BlogInteractionController::class, 'view']);
 // List all blog posts (GET)
 Route::get('/blog', [BlogPostController::class, 'index']);
 Route::get('/blog/{id}', [BlogPostController::class, 'show']);
-// View a specific blog post (GET)
-Route::get('/blog/{id}', [BlogPostController::class, 'show']);
 
 // Newsletter - Public routes
 Route::post('/newsletter/subscribe', [NewsletterSubscriptionController::class, 'subscribe']);
 Route::post('/newsletter/unsubscribe', [NewsletterSubscriptionController::class, 'unsubscribe']);
 
-// Protected routes
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+// Protected routes (excluding EnsureFrontendRequestsAreStateful for multipart/form-data)
+Route::middleware(['auth:sanctum', 'verified', \Illuminate\Routing\Middleware\SubstituteBindings::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // FAQ Routes - Protected endpoints
@@ -130,7 +128,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::post('/harvests', [HarvestorController::class, 'store']);
 
-
     // User management (admin only)
     Route::post('/admin/users', [AdminUserController::class, 'store']);
     Route::delete('/admin/users/{id}', [AdminUserController::class, 'destroy']);
@@ -139,7 +136,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
 
-    //service management (admin only)
+    // Service management (admin only)
     Route::prefix('services')->group(function () {
         Route::post('/', [ServiceController::class, 'store']);
         Route::get('/{id}', [ServiceController::class, 'show']);
