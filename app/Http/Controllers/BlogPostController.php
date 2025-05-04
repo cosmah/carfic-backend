@@ -107,14 +107,6 @@ class BlogPostController extends Controller
      */
     public function store(Request $request)
     {
-        \Log::info('Store request received', [
-            'request' => $request->all(),
-            'raw' => $request->getContent(),
-            'headers' => $request->headers->all(),
-            'input' => $request->input(),
-            'files' => $request->file()
-        ]);
-
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'excerpt' => 'nullable|string',
@@ -130,7 +122,6 @@ class BlogPostController extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -139,7 +130,6 @@ class BlogPostController extends Controller
         }
 
         $data = $validator->validated();
-        \Log::info('Validated data', ['data' => $data]);
 
         // Handle image upload
         if ($request->hasFile('image')) {
@@ -190,17 +180,7 @@ class BlogPostController extends Controller
      */
     public function update(Request $request, $id)
     {
-        \Log::info('Update request received', [
-            'id' => $id,
-            'request' => $request->all(),
-            'raw' => $request->getContent(),
-            'headers' => $request->headers->all(),
-            'input' => $request->input(),
-            'files' => $request->file()
-        ]);
-
         $blogPost = BlogPost::findOrFail($id);
-        \Log::info('Blog post found', ['blogPost' => $blogPost->toArray()]);
 
         // Parse raw multipart/form-data
         $input = [];
@@ -261,8 +241,6 @@ class BlogPostController extends Controller
             return !is_null($value);
         });
 
-        \Log::info('Parsed input', ['input' => $input]);
-
         $validator = Validator::make($input, [
             'title' => 'sometimes|required|string|max:255',
             'excerpt' => 'sometimes|nullable|string',
@@ -278,7 +256,6 @@ class BlogPostController extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -287,10 +264,8 @@ class BlogPostController extends Controller
         }
 
         $data = $validator->validated();
-        \Log::info('Validated data', ['data' => $data]);
 
         if (empty($data)) {
-            \Log::warning('No validated data to update');
             return response()->json([
                 'success' => false,
                 'message' => 'No valid data provided for update',
@@ -299,12 +274,10 @@ class BlogPostController extends Controller
 
         // Handle image upload
         if ($request->hasFile('image')) {
-            \Log::info('Image upload detected');
             if ($blogPost->image) {
                 $oldImagePath = str_replace('/storage/', '', $blogPost->image);
                 if (Storage::disk('public')->exists($oldImagePath)) {
                     Storage::disk('public')->delete($oldImagePath);
-                    \Log::info('Old image deleted', ['path' => $oldImagePath]);
                 }
             }
 
@@ -313,12 +286,10 @@ class BlogPostController extends Controller
             $filename = "{$randomNumber}_blog.{$extension}";
             $path = $request->file('image')->storeAs('blog_images', $filename, 'public');
             $data['image'] = Storage::url($path);
-            \Log::info('New image uploaded', ['path' => $path]);
         }
 
         // Update only if data is present
         $blogPost->update($data);
-        \Log::info('Blog post updated', ['updatedData' => $data]);
 
         // Handle tags
         if (isset($data['tags']) && is_array($data['tags'])) {
@@ -328,7 +299,6 @@ class BlogPostController extends Controller
                 $tagIds[] = $tag->id;
             }
             $blogPost->tags()->sync($tagIds);
-            \Log::info('Tags synced', ['tags' => $data['tags']]);
         }
 
         return response()->json([
