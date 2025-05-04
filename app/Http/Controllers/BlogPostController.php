@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Tag;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -17,14 +16,11 @@ class BlogPostController extends Controller
      */
     public function index(Request $request)
     {
-        Log::info('Fetching blog posts', ['request' => $request->all()]);
-
         $query = BlogPost::with(['comments', 'tags']);
 
         // Filter by search term
         if ($request->has('search')) {
             $searchTerm = $request->input('search');
-            Log::info('Applying search filter', ['searchTerm' => $searchTerm]);
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'like', "%{$searchTerm}%")
                   ->orWhere('excerpt', 'like', "%{$searchTerm}%")
@@ -35,14 +31,12 @@ class BlogPostController extends Controller
         // Filter by category
         if ($request->has('category') && $request->input('category') !== 'All') {
             $category = $request->input('category');
-            Log::info('Applying category filter', ['category' => $category]);
             $query->where('category', $category);
         }
 
         // Filter by tag
         if ($request->has('tag') && $request->input('tag') !== 'All') {
             $tag = $request->input('tag');
-            Log::info('Applying tag filter', ['tag' => $tag]);
             $query->whereHas('tags', function ($q) use ($tag) {
                 $q->where('name', $tag);
             });
@@ -50,7 +44,6 @@ class BlogPostController extends Controller
 
         // Sort posts
         $sortBy = $request->input('sort', 'newest');
-        Log::info('Sorting posts', ['sortBy' => $sortBy]);
         if ($sortBy === 'newest') {
             $query->orderBy('created_at', 'desc');
         } elseif ($sortBy === 'oldest') {
@@ -61,10 +54,7 @@ class BlogPostController extends Controller
 
         // Paginate results
         $perPage = $request->input('per_page', 9);
-        Log::info('Paginating results', ['perPage' => $perPage]);
         $blogPosts = $query->paginate($perPage);
-
-        Log::info('Blog posts retrieved successfully', ['total' => $blogPosts->total()]);
 
         // Transform the data to match the frontend expected format
         $formattedPosts = $blogPosts->map(function ($post) {
@@ -117,13 +107,11 @@ class BlogPostController extends Controller
      */
     public function store(Request $request)
     {
-        Log::info('Creating a new blog post', ['request' => $request->all()]);
-
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'excerpt' => 'nullable|string',
             'content' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|file|max:2048',
             'author' => 'required|string|max:255',
             'author_avatar' => 'nullable|string',
             'category' => 'nullable|string|max:100',
@@ -134,7 +122,6 @@ class BlogPostController extends Controller
         ]);
 
         if ($validator->fails()) {
-            Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -143,20 +130,18 @@ class BlogPostController extends Controller
         }
 
         $data = $validator->validated();
-        Log::info('Validated data', ['data' => $data]);
 
         // Handle image upload
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('blog_images', 'public');
+            $randomNumber = random_int(100000000000, 999999999999);
+            $extension = $request->file('image')->getClientOriginalExtension();
+            $filename = "{$randomNumber}_blog.{$extension}";
+            $path = $request->file('image')->storeAs('blog_images', $filename, 'public');
             $data['image'] = Storage::url($path);
-            Log::info('Image uploaded', ['path' => $path]);
         }
 
-        // Create blog post
         $blogPost = BlogPost::create($data);
-        Log::info('Blog post created', ['blogPost' => $blogPost]);
 
-        // Handle tags
         if (isset($data['tags']) && is_array($data['tags'])) {
             $tagIds = [];
             foreach ($data['tags'] as $tagName) {
@@ -164,7 +149,6 @@ class BlogPostController extends Controller
                 $tagIds[] = $tag->id;
             }
             $blogPost->tags()->sync($tagIds);
-            Log::info('Tags synced', ['tags' => $data['tags']]);
         }
 
         return response()->json([
@@ -186,7 +170,7 @@ class BlogPostController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $this->formatBlogPost($blogPost),
+            'data' => $this->formatBlogPost($blogPost), // Pass the correct instance
             'message' => 'Blog post retrieved successfully',
         ]);
     }
@@ -202,7 +186,7 @@ class BlogPostController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'excerpt' => 'sometimes|nullable|string',
             'content' => 'sometimes|required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|file|max:2048',
             'author' => 'sometimes|required|string|max:255',
             'author_avatar' => 'nullable|string',
             'category' => 'nullable|string|max:100',
@@ -222,9 +206,7 @@ class BlogPostController extends Controller
 
         $data = $validator->validated();
 
-        // Handle image upload
         if ($request->hasFile('image')) {
-            // Delete old image if it exists
             if ($blogPost->image) {
                 $oldImagePath = str_replace('/storage/', '', $blogPost->image);
                 if (Storage::disk('public')->exists($oldImagePath)) {
@@ -232,14 +214,15 @@ class BlogPostController extends Controller
                 }
             }
 
-            $path = $request->file('image')->store('blog_images', 'public');
+            $randomNumber = random_int(100000000000, 999999999999);
+            $extension = $request->file('image')->getClientOriginalExtension();
+            $filename = "{$randomNumber}_blog.{$extension}";
+            $path = $request->file('image')->storeAs('blog_images', $filename, 'public');
             $data['image'] = Storage::url($path);
         }
 
-        // Update blog post
         $blogPost->update($data);
 
-        // Handle tags
         if (isset($data['tags']) && is_array($data['tags'])) {
             $tagIds = [];
             foreach ($data['tags'] as $tagName) {
@@ -263,7 +246,6 @@ class BlogPostController extends Controller
     {
         $blogPost = BlogPost::findOrFail($id);
 
-        // Delete image if it exists
         if ($blogPost->image) {
             $imagePath = str_replace('/storage/', '', $blogPost->image);
             if (Storage::disk('public')->exists($imagePath)) {

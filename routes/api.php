@@ -97,8 +97,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/blog/{blogPostId}/comments/{id}/like', [CommentController::class, 'like']);
     // Create a new blog post (POST)
     Route::post('/blog', [BlogPostController::class, 'store']);
-    // Update a specific blog post (PUT/PATCH)
-    Route::put('/blog/{id}', [BlogPostController::class, 'update']);
+    // Update a specific blog post (PATCH)
     Route::patch('/blog/{id}', [BlogPostController::class, 'update']);
     // Delete a specific blog post (DELETE)
     Route::delete('/blog/{id}', [BlogPostController::class, 'destroy']);
