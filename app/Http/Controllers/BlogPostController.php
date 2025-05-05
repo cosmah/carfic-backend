@@ -192,10 +192,8 @@ class BlogPostController extends Controller
      */
     public function update(Request $request, $id)
     {
-        Log::info('Update request received for blog post.', ['id' => $id, 'request_data' => $request->all()]);
 
         $blogPost = BlogPost::findOrFail($id);
-        Log::info('Blog post found.', ['id' => $id]);
 
         $input = [
             'title' => $request->input('title'),
@@ -244,7 +242,6 @@ class BlogPostController extends Controller
         ]);
 
         if ($validator->fails()) {
-            Log::warning('Validation failed for blog post update.', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -253,10 +250,8 @@ class BlogPostController extends Controller
         }
 
         $data = $validator->validated();
-        Log::info('Validated data for update.', ['data' => $data]);
 
         if (empty($data)) {
-            Log::warning('No valid data provided for update.', ['id' => $id]);
             return response()->json([
                 'success' => false,
                 'message' => 'No valid data provided for update',
@@ -265,12 +260,10 @@ class BlogPostController extends Controller
 
         // Handle image upload
         if ($request->hasFile('image')) {
-            Log::info('Image upload detected for blog post.', ['id' => $id]);
             if ($blogPost->image) {
                 $oldImagePath = $blogPost->image;
                 if (Storage::disk('public')->exists($oldImagePath)) {
                     Storage::disk('public')->delete($oldImagePath);
-                    Log::info('Old image deleted.', ['path' => $oldImagePath]);
                 }
             }
             $randomNumber = random_int(100000000000, 999999999999);
@@ -278,17 +271,14 @@ class BlogPostController extends Controller
             $filename = "{$randomNumber}_blog.{$extension}";
             $path = $request->file('image')->storeAs('blog_images', $filename, 'public');
             $data['image'] = $path;
-            Log::info('New image uploaded.', ['path' => $path]);
         }
 
         // Handle cover image upload
         if ($request->hasFile('cover_image')) {
-            Log::info('Cover image upload detected for blog post.', ['id' => $id]);
             if ($blogPost->cover_image) {
                 $oldCoverPath = $blogPost->cover_image;
                 if (Storage::disk('public')->exists($oldCoverPath)) {
                     Storage::disk('public')->delete($oldCoverPath);
-                    Log::info('Old cover image deleted.', ['path' => $oldCoverPath]);
                 }
             }
             $randomNumber = random_int(100000000000, 999999999999);
@@ -296,12 +286,10 @@ class BlogPostController extends Controller
             $filename = "{$randomNumber}_cover.{$extension}";
             $path = $request->file('cover_image')->storeAs('blog_cover', $filename, 'public');
             $data['cover_image'] = $path;
-            Log::info('New cover image uploaded.', ['path' => $path]);
         }
 
         // Update only if data is present
         $blogPost->update($data);
-        Log::info('Blog post updated successfully.', ['id' => $id, 'updated_data' => $data]);
 
         // Handle tags
         if (isset($data['tags']) && is_array($data['tags'])) {
@@ -311,7 +299,6 @@ class BlogPostController extends Controller
                 $tagIds[] = $tag->id;
             }
             $blogPost->tags()->sync($tagIds);
-            Log::info('Tags updated for blog post.', ['id' => $id, 'tags' => $data['tags']]);
         }
 
         return response()->json([
