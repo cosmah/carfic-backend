@@ -96,7 +96,7 @@ Route::middleware(['auth:sanctum', 'verified', \Illuminate\Routing\Middleware\Su
     // Create a new blog post (POST)
     Route::post('/blog', [BlogPostController::class, 'store']);
     // Update a specific blog post (PATCH)
-    Route::patch('/blog/{id}', [BlogPostController::class, 'update']);
+    Route::post('/blog/{id}', [BlogPostController::class, 'update']);
     // Delete a specific blog post (DELETE)
     Route::delete('/blog/{id}', [BlogPostController::class, 'destroy']);
 
