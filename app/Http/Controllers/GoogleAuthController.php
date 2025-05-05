@@ -18,7 +18,6 @@ class GoogleAuthController extends Controller
             ->redirect()
             ->getTargetUrl();
 
-        Log::info('Google OAuth Redirect URL: ' . $redirectUrl);
 
         return response()->json([
             'success' => true,
@@ -40,11 +39,9 @@ class GoogleAuthController extends Controller
                 ], 400);
             }
 
-            Log::info('Received authorization code:', ['code' => $code]);
 
             $cacheKey = 'google_oauth_code_' . md5($code);
             if (Cache::has($cacheKey)) {
-                Log::warning('Authorization code already used:', ['code' => $code]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Authorization code already used',
@@ -55,7 +52,6 @@ class GoogleAuthController extends Controller
             $provider = Socialite::driver('google')->stateless();
             $accessTokenResponse = $provider->getAccessTokenResponse($code);
 
-            Log::info('Access token response:', ['response' => $accessTokenResponse]);
 
             $googleUser = $provider->userFromToken($accessTokenResponse['access_token']);
 
@@ -71,7 +67,6 @@ class GoogleAuthController extends Controller
 
             $token = $user->createToken('google-token')->plainTextToken;
 
-            Log::info('User authenticated successfully:', ['user_id' => $user->id]);
 
             $response = [
                 'success' => true,
@@ -83,17 +78,14 @@ class GoogleAuthController extends Controller
             ];
 
             // Log the exact response being sent
-            Log::info('Sending response to frontend:', $response);
 
             return response()->json($response);
         } catch (\Exception $e) {
-            Log::error('Google callback error: ' . $e->getMessage());
             $errorResponse = [
                 'success' => false,
                 'message' => 'Authentication failed',
                 'errors' => ['exception' => $e->getMessage()],
             ];
-            Log::info('Sending error response to frontend:', $errorResponse);
             return response()->json($errorResponse, 400);
         }
     }

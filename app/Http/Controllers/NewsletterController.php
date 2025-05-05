@@ -113,16 +113,12 @@ class NewsletterController extends Controller
      */
     public function send($id)
     {
-        // Log the start of the send process
-        \Log::info("Starting the process to send newsletter with ID: {$id}");
 
         // Retrieve the newsletter
         $newsletter = Newsletter::findOrFail($id);
-        \Log::info("Newsletter retrieved: ", $newsletter->toArray());
 
         // Check if the newsletter is already published
         if ($newsletter->status === 'published') {
-            \Log::warning("Newsletter with ID {$id} is already published.");
             return response()->json([
                 'message' => 'Newsletter is already published',
                 'data' => $newsletter
@@ -134,9 +130,7 @@ class NewsletterController extends Controller
             // Create an instance of the job and call handle() directly
             $job = new \App\Jobs\SendNewsletterJob($newsletter);
             $job->handle(); // This immediately processes the job
-            \Log::info("Newsletter sent directly for ID: {$id}");
         } catch (\Exception $e) {
-            \Log::error("Failed to send newsletter for ID: {$id}. Error: {$e->getMessage()}");
             return response()->json([
                 'message' => 'Failed to send the newsletter',
                 'error' => $e->getMessage()
@@ -149,17 +143,13 @@ class NewsletterController extends Controller
                 'status' => 'published',
                 'published_at' => now(),
             ]);
-            \Log::info("Newsletter status updated to 'published' for ID: {$id}");
         } catch (\Exception $e) {
-            \Log::error("Failed to update newsletter status for ID: {$id}. Error: {$e->getMessage()}");
             return response()->json([
                 'message' => 'Failed to update newsletter status',
                 'error' => $e->getMessage()
             ], 500);
         }
 
-        // Log the successful completion of the process
-        \Log::info("Newsletter with ID {$id} successfully sent and marked as published.");
 
         return response()->json([
             'message' => 'Newsletter sent successfully',

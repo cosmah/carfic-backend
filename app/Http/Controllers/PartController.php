@@ -33,17 +33,14 @@ class PartController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        Log::info('Index method called', ['query' => $request->query()]);
 
         $query = Part::query();
 
         if ($search = $request->query('search')) {
-            Log::info('Search filter applied', ['search' => $search]);
             $query->where('name', 'like', "%{$search}%");
         }
 
         if ($category = $request->query('category')) {
-            Log::info('Category filter applied', ['category' => $category]);
             $query->where('category', $category);
         }
 
@@ -51,24 +48,20 @@ class PartController extends Controller
             return $this->formatImageUrls($part);
         });
 
-        Log::info('Parts retrieved', ['count' => $parts->count()]);
         return response()->json($parts);
     }
 
     public function show($id): JsonResponse
     {
-        Log::info('Show method called', ['id' => $id]);
 
         $part = Part::findOrFail($id);
         $part = $this->formatImageUrls($part);
 
-        Log::info('Part retrieved', ['part_id' => $part->id]);
         return response()->json($part);
     }
 
     public function store(Request $request): JsonResponse
     {
-        Log::info('Store method called', ['request' => $request->all()]);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -93,18 +86,15 @@ class PartController extends Controller
             'status' => 'required|in:draft,published',
         ]);
 
-        Log::info('Validation passed', ['validated' => $validated]);
 
         $part = Part::create($validated);
         $part = $this->formatImageUrls($part);
 
-        Log::info('Part created', ['part_id' => $part->id]);
         return response()->json($part, 201);
     }
 
     public function uploadImage(Request $request): JsonResponse
     {
-        Log::info('UploadImage method called', ['request' => $request->all()]);
 
         try {
             $validated = $request->validate([
@@ -112,11 +102,9 @@ class PartController extends Controller
                 'images.*' => 'required|image|max:2048', // Removed 'mimes' rule
             ]);
 
-            Log::info('Validation passed', ['validated' => $validated]);
 
             $files = $request->file('images');
             foreach ($files as $index => $image) {
-                Log::info('File MIME type', ['index' => $index, 'mime_type' => $image->getMimeType()]);
             }
 
             $urls = [];
@@ -124,25 +112,20 @@ class PartController extends Controller
                 $path = $image->store('spares', 'public');
                 $url = Storage::url($path);
                 $urls[] = ['index' => $index, 'url' => $url, 'path' => $path];
-                Log::info('Image stored', ['index' => $index, 'path' => $path, 'url' => $url]);
             }
 
             return response()->json(['urls' => $urls], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed', ['errors' => $e->errors()]);
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Image upload failed', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to upload images'], 500);
         }
     }
 
     public function update(Request $request, $id): JsonResponse
     {
-        Log::info('Update method called', ['id' => $id, 'request' => $request->all()]);
 
         $part = Part::findOrFail($id);
-        Log::info('Part found', ['part_id' => $part->id]);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -167,24 +150,19 @@ class PartController extends Controller
             'status' => 'sometimes|in:draft,published',
         ]);
 
-        Log::info('Validation passed', ['validated' => $validated]);
 
         $part->update($validated);
         $part = $this->formatImageUrls($part);
 
-        Log::info('Part updated', ['part_id' => $part->id]);
         return response()->json($part);
     }
 
     public function destroy($id): JsonResponse
     {
-        Log::info('Destroy method called', ['id' => $id]);
 
         $part = Part::findOrFail($id);
-        Log::info('Part found', ['part_id' => $part->id]);
 
         $part->delete();
-        Log::info('Part deleted', ['id' => $id]);
 
         return response()->json(null, 204);
     }

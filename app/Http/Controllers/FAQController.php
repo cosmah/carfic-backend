@@ -36,7 +36,6 @@ class FAQController extends Controller
      */
     public function store(Request $request)
     {
-        Log::info('Store method called', ['request' => $request->all()]);
 
         $validator = Validator::make($request->all(), [
             'question' => 'required|string|max:255',
@@ -47,7 +46,6 @@ class FAQController extends Controller
         ]);
 
         if ($validator->fails()) {
-            Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -56,7 +54,6 @@ class FAQController extends Controller
         }
 
         $faq = FAQ::create($request->all());
-        Log::info('FAQ created successfully', ['faq_id' => $faq->id]);
 
         return response()->json([
             'success' => true,
