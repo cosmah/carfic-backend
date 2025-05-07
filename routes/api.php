@@ -79,7 +79,7 @@ Route::post('/newsletter/subscribe', [NewsletterSubscriptionController::class, '
 Route::post('/newsletter/unsubscribe', [NewsletterSubscriptionController::class, 'unsubscribe']);
 
 // Protected routes (excluding EnsureFrontendRequestsAreStateful for multipart/form-data)
-Route::middleware([EnsureFrontendRequestsAreStateful,'auth:sanctum', 'verified', \Illuminate\Routing\Middleware\SubstituteBindings::class])->group(function () {
+Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum', 'verified', \Illuminate\Routing\Middleware\SubstituteBindings::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // FAQ Routes - Protected endpoints
