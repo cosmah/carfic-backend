@@ -22,7 +22,6 @@ use App\Http\Controllers\PartController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ServiceController;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 
 // Spare parts routes
@@ -79,7 +78,7 @@ Route::post('/newsletter/subscribe', [NewsletterSubscriptionController::class, '
 Route::post('/newsletter/unsubscribe', [NewsletterSubscriptionController::class, 'unsubscribe']);
 
 // Protected routes (excluding EnsureFrontendRequestsAreStateful for multipart/form-data)
-Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum', 'verified', \Illuminate\Routing\Middleware\SubstituteBindings::class])->group(function () {
+Route::middleware(['auth:sanctum', 'verified', \Illuminate\Routing\Middleware\SubstituteBindings::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // FAQ Routes - Protected endpoints
