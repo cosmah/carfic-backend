@@ -65,7 +65,7 @@ class BlogPostController extends Controller
                 'excerpt' => $post->excerpt,
                 'content' => $post->content,
                 'image' => $post->image,
-                'cover_image' => $post->cover_image ? Storage::url($post->cover_image) : null,
+                'cover_image' => $post->cover_image,
                 'author' => $post->author,
                 'date' => $post->created_at->toDateString(),
                 'likes' => $post->likes,
