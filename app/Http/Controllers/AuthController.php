@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use App\Mail\PasswordResetOtpMail;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -99,5 +104,102 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    /**
+     * Send OTP for password reset.
+     */
+    public function sendResetOtp(Request $request): JsonResponse
+    {
+        Log::info('Password reset OTP requested', ['email' => $request->email]);
+
+        $request->validate(['email' => 'required|email|exists:users,email']);
+
+        $otp = rand(100000, 999999);
+        DB::table('password_resets')->updateOrInsert(
+            ['email' => $request->email],
+            ['otp' => $otp, 'created_at' => now()]
+        );
+
+        Log::info('OTP generated and saved', ['email' => $request->email, 'otp' => $otp]);
+
+        // Send OTP via a templated email
+        Mail::to($request->email)->send(new PasswordResetOtpMail($otp));
+
+        Log::info('OTP email sent', ['email' => $request->email]);
+
+        return response()->json(['message' => 'OTP sent to your email.']);
+    }
+
+    /**
+     * Verify OTP for password reset.
+     */
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        Log::info('OTP verification attempt', ['email' => $request->email, 'otp' => $request->otp]);
+
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required|string'
+        ]);
+
+        $record = DB::table('password_resets')
+            ->where('email', $request->email)
+            ->where('otp', $request->otp)
+            ->first();
+
+        if (!$record) {
+            Log::warning('Invalid OTP attempt', ['email' => $request->email, 'otp' => $request->otp]);
+            return response()->json(['message' => 'Invalid OTP.'], 400);
+        }
+
+        $expiresAt = Carbon::parse($record->created_at)->addMinutes(5);
+        if (now()->greaterThan($expiresAt)) {
+            Log::warning('Expired OTP attempt', ['email' => $request->email, 'otp' => $request->otp]);
+            return response()->json(['message' => 'OTP expired.'], 400);
+        }
+
+        Log::info('OTP verified', ['email' => $request->email]);
+        return response()->json(['message' => 'OTP verified.']);
+    }
+
+    /**
+     * Reset password.
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        Log::info('Password reset attempt', ['email' => $request->email]);
+
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required|string',
+            'password' => 'required|string|min:8|confirmed'
+        ]);
+
+        $record = DB::table('password_resets')
+            ->where('email', $request->email)
+            ->where('otp', $request->otp)
+            ->first();
+
+        if (!$record) {
+            Log::warning('Invalid OTP on password reset', ['email' => $request->email, 'otp' => $request->otp]);
+            return response()->json(['message' => 'Invalid OTP.'], 400);
+        }
+
+        $expiresAt = Carbon::parse($record->created_at)->addMinutes(5);
+        if (now()->greaterThan($expiresAt)) {
+            Log::warning('Expired OTP on password reset', ['email' => $request->email, 'otp' => $request->otp]);
+            return response()->json(['message' => 'OTP expired.'], 400);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        DB::table('password_resets')->where('email', $request->email)->delete();
+
+        Log::info('Password reset successful', ['email' => $request->email]);
+
+        return response()->json(['message' => 'Password reset successful.']);
     }
 }

@@ -58,7 +58,9 @@ Route::post('email/resend', [VerificationController::class, 'resend'])
 
 // Password reset routes
 Route::post('password/email', [PasswordResetController::class, 'sendResetLinkEmail']);
-Route::post('password/reset', [PasswordResetController::class, 'reset']);
+Route::post('password/otp', [AuthController::class, 'sendResetOtp']);
+Route::post('password/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::post('password/reset', [AuthController::class, 'resetPassword']);
 
 // FAQ Routes - Public endpoints
 Route::get('/faqs', [FAQController::class, 'index']);
