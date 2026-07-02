@@ -61,7 +61,7 @@ class MigrateSafe extends Command
 
             $tables = $this->extractCreatedTables(database_path("migrations/{$migration}.php"));
 
-            if ($tables === [] || ! $this->tablesExist($tables)) {
+            if ($tables === [] || ! $this->anyTableExists($tables)) {
                 continue;
             }
 
@@ -156,15 +156,15 @@ class MigrateSafe extends Command
     /**
      * @param  list<string>  $tables
      */
-    private function tablesExist(array $tables): bool
+    private function anyTableExists(array $tables): bool
     {
         foreach ($tables as $table) {
-            if (! Schema::hasTable($table)) {
-                return false;
+            if (Schema::hasTable($table)) {
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
     /**
