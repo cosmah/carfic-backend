@@ -2,14 +2,15 @@
 
 namespace App\Providers;
 
-use Illuminate\Auth\Notifications\VerifyEmail;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\ServiceProvider;
+use App\Services\MigrationSyncService;
 use Illuminate\Auth\Notifications\ResetPassword;
-use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ServiceProvider;
 use GuzzleHttp\Client;
+use Laravel\Socialite\Facades\Socialite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,18 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Event::listen(CommandStarting::class, function (CommandStarting $event): void {
+            if ($event->command !== 'migrate' || MigrationSyncService::$skipAutoSync) {
+                return;
+            }
+
+            if (! Schema::hasTable('migrations')) {
+                return;
+            }
+
+            MigrationSyncService::sync();
+        });
+
         VerifyEmail::createUrlUsing(function ($notifiable) {
             $params = [
                 'id' => $notifiable->getKey(),
