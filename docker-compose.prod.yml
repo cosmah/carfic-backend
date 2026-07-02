@@ -40,6 +40,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      # Repeated last so it wins over Coolify UI env injection when supported
+      AUTORUN_LARAVEL_MIGRATION: "false"
 
 volumes:
   storage:

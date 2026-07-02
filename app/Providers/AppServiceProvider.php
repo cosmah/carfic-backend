@@ -27,7 +27,11 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if (! Schema::hasTable('migrations')) {
-                return;
+                if (! MigrationSyncService::databaseHasExistingTables()) {
+                    return;
+                }
+
+                \Illuminate\Support\Facades\Artisan::call('migrate:install');
             }
 
             MigrationSyncService::sync();

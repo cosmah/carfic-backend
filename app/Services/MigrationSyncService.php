@@ -10,6 +10,19 @@ class MigrationSyncService
 {
     public static bool $skipAutoSync = false;
 
+    public static function databaseHasExistingTables(): bool
+    {
+        foreach (self::migrationFiles() as $migration) {
+            $tables = self::extractCreatedTables(database_path("migrations/{$migration}.php"));
+
+            if ($tables !== [] && self::anyTableExists($tables)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function sync(): int
     {
         if (! Schema::hasTable('migrations')) {
